@@ -93,7 +93,7 @@ Likewise, the `accumulation` here is reserved for future extension.
 
 ## Sample
 
-The `TestProofDPPositive()`/`TestProofDPNegative()`/`TestProofDPFile()` tests act as excutable samples for proofDP usage. Please check [proof_test.go](https://github.com/LambdaIM/proofDP/blob/master/proof_test.go) for details.
+The `TestProofDPPositive()`/`TestProofDPNegative()`/`TestProofDPFile()`/`TestProofDPAcc()` tests act as excutable samples for proofDP usage. Please check [proof_test.go](https://github.com/LambdaIM/proofDP/blob/master/proof_test.go) for details.
 
 ## License
 
