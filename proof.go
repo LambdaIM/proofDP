@@ -86,7 +86,7 @@ func GenTag(pairing *Pairing,  keys *KeySet, data []byte, index []byte) Tag {
 
 type Challenge = *zpElem
 
-func GenChallenge(pairing *Pairing, index []byte) *zpElem {
+func GenChallenge(pairing *Pairing, index []byte) Challenge {
 	return randomZpElem(pairing.zr)
 }
 
@@ -116,33 +116,61 @@ type Accumulation struct {
 	Ec *ecPoint
 }
 
-func InitAccumulation(pairing *Pairing) Accumulation {
+func InitAcc(pairing *Pairing) Accumulation {
 	return Accumulation{ newZpZero(pairing.zr), newEcIdentity(pairing.g1) }
 }
 
-func GenProof(pairing *Pairing,
-	key *PublicKey,
-	data [] byte,
-	challenge Challenge,
-	tag Tag,
-	accumulation Accumulation) *Proof {
+func GenProof(pairing *Pairing, key *PublicKey, data [] byte, challenge Challenge, tag Tag) *Proof {
+	acc := InitAcc(pairing)
 	// r = e(u, v)^n
 	n := randomZpElem(pairing.zr)
 	r := newQdElem(key.euv.field).set(key.euv)
 	r.powN(r, n.v)
 	// Vi * Mi
-	ViMi := calculateViMi(accumulation.Zp, data, challenge)
+	ViMi := calculateViMi(acc.Zp, data, challenge)
 	// y = h(R)
 	y := pairing.mapGTElemToZr(r)
 	// u = n + y * u
 	u := n.add(n, y.mul(y, ViMi))
 	// a = ai^vi
-	a := calculateAiVi(accumulation.Ec, challenge, tag)
+	a := calculateAiVi(acc.Ec, challenge, tag)
 	// create root instance
 	return &Proof{ u, a, r }
 }
 
-// Pi(H(Wi)^Vi)
+// WARNING: require len(data) == len(chals) == len(tags)
+// FIXME: check parameter requirements
+func GenProofAcc(pairing *Pairing, key *PublicKey, data [][]byte, chals []Challenge, tags []Tag) *Proof {
+	// random element on Zr
+	r := randomZpElem(pairing.zr)
+
+	// R = e(u, v)^r
+	R := newQdElem(key.euv.field).set(key.euv)
+	R.powN(R, r.v)
+
+	// mu' = Sum(nu_i * m_i)
+	sum := newZpZero(pairing.zr)
+	for i, d := range data {
+		sum = calculateViMi(sum, d, chals[i])
+	}
+
+	// gamma = h(R)
+	gamma := pairing.mapGTElemToZr(R)
+
+	// mu = r + gamma * mu'
+	mu := r.add(r, gamma.mul(gamma, sum))
+
+	// sigma = Prod(sigma_i^nu_i)
+	prod := newEcIdentity(pairing.g1)
+	for i, t := range tags {
+		prod = calculateAiVi(prod, chals[i], t)
+	}
+
+	// return the proof
+	return &Proof{ mu, prod, R }
+}
+
+// Prod(H(Wi)^Vi)
 func calculateHWiVi(accumulation *ecPoint, pairing *Pairing, id []byte, challenge *zpElem) *ecPoint {
 	// H(Wi)^Vi, Wi = id
 	HWi := pairing.mapDataToG1(id)
@@ -151,13 +179,8 @@ func calculateHWiVi(accumulation *ecPoint, pairing *Pairing, id []byte, challeng
 	return accumulation.mul(accumulation, HWiVi)
 }
 
-// check Re(a^y, g) == e((Pi(H(Wi)^Vi))^y * u^u, v)
-func Verify(pairing *Pairing,
-	key *PublicKey,
-	id []byte,
-	challenge *zpElem,
-	proof *Proof,
-	accumulation Accumulation) bool {
+// check R * e(a^y, g) == e((Prod(H(Wi)^Vi))^y * u^u, v)
+func Verify(pairing *Pairing, key *PublicKey, id []byte, challenge Challenge, proof *Proof) bool {
 	// y = h(R)
 	y := pairing.mapGTElemToZr(proof.r)
 	// a^y
@@ -167,15 +190,51 @@ func Verify(pairing *Pairing,
 	// lhs = Re(a^y, g)
 	lhs := newQdElem(proof.r.field).mul(proof.r, eayg)
 	// Pi(H(Wi)^Vi)
-	PiHWiVi := calculateHWiVi(accumulation.Ec, pairing, id, challenge)
+	acc := newEcIdentity(pairing.g1)
+	ProdHWiVi := calculateHWiVi(acc, pairing, id, challenge)
 	// Pi(H(Wi)^Vi)^y
-	PiHWiViy := newEcPoint(PiHWiVi.curve).powN(PiHWiVi, y.v)
+	ProdHWiViy := newEcPoint(ProdHWiVi.curve).powN(ProdHWiVi, y.v)
 	// u^u
 	uu := newEcPoint(key.u.curve).powN(key.u, proof.u.v)
 	// Pi(H(Wi)^Vi)^y * u^u
-	PiHWiViyuu := PiHWiViy.mul(PiHWiViy, uu)
+	ProdHWiViyuu := ProdHWiViy.mul(ProdHWiViy, uu)
 	// rhs := e((II H(Wi)^Vi)^y * u^u, v)
-	rhs := pairing.E(PiHWiViyuu, key.blsPK.key)
+	rhs := pairing.E(ProdHWiViyuu, key.blsPK.key)
 	// compare
+	return lhs.equal(rhs)
+}
+
+func VerifyAcc(pairing *Pairing, key *PublicKey, indices [][]byte, chals []Challenge, proof *Proof) bool {
+	// gamma = h(R)
+	gamma := pairing.mapGTElemToZr(proof.r)
+
+	// sigma^gamma
+	sigma := newEcPoint(proof.a.curve).powN(proof.a, gamma.v)
+
+	// e(sigma^gamma, g)
+	lhsE := pairing.E(sigma, key.g)
+
+	// lhs = R * e(sigma^gamma, g)
+	lhs := newQdElem(proof.r.field).mul(proof.r, lhsE)
+
+	// Prod(H(W_i)^nu_i)
+	prod := newEcIdentity(pairing.g1)
+	for i, index := range indices {
+		prod = calculateHWiVi(prod, pairing, index, chals[i])
+	}
+
+	// Prod^gamma
+	prodExpGamma := newEcPoint(prod.curve).powN(prod, gamma.v)
+
+	// u^mu
+	uExpMu := newEcPoint(key.u.curve).powN(key.u, proof.u.v)
+
+	// Prod^gamma * u^mu
+	item := prodExpGamma.mul(prodExpGamma, uExpMu)
+
+	// rhs = e(rhsItem, v)
+	rhs := pairing.E(item, key.blsPK.key)
+
+	// compare result
 	return lhs.equal(rhs)
 }

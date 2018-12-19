@@ -24,6 +24,36 @@ import (
 	"testing"
 )
 
+func TestMapDataToG1(t *testing.T) {
+	cfgFile, e := os.Open(ParamCfgFilePath)
+	if e != nil {
+		t.Fatalf("configure file loading error: %s\n", e.Error())
+	}
+	defer cfgFile.Close()
+
+	// A-type parameter
+	aParam, e := InitAParam(cfgFile)
+	if e != nil {
+		t.Fatalf("A-type parameter init error: %s\n", e.Error())
+	}
+
+	// create pairing instance using given parameter
+	aPairing := GenPairingWithAParam(aParam)
+
+	p := aPairing.mapDataToG1([]byte("sample data"))
+	t.Logf("mapDataToG1(\"sample data\") = \n%v\n", p.toBytes())
+
+
+	p = aPairing.mapDataToG1(append([]byte("name"), make([]byte, 4)...))
+	t.Logf("mapDataToG1(\"name\\0\\0\\0\\0\") = \n%v\n", p.toBytes())
+
+	p = aPairing.mapDataToG1(append([]byte("name"), Int2bytes(1)...))
+	t.Logf("mapDataToG1(\"name\\0\\0\\0\\1\") = \n%v\n", p.toBytes())
+
+	p = aPairing.mapDataToG1(append([]byte("name"), []byte("0000")...))
+	t.Logf("mapDataToG1(\"name0000\") = \n%v\n", p.toBytes())
+}
+
 // test the e(u, v) implementation
 func TestPairingE(t *testing.T) {
 	cfgFile, e := os.Open(ParamCfgFilePath)

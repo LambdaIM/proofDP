@@ -145,6 +145,14 @@ func (e *zpElem) setOne() *zpElem {
 	return e
 }
 
+func (e *zpElem) isZero() bool {
+	return e.v.Cmp(bigInt0) == 0
+}
+
+func (e *zpElem) isOne() bool {
+	return e.v.Cmp(bigInt1) == 0
+}
+
 func (e *zpElem) setHash(hash []byte) *zpElem {
 	e.setV(hashToBigInt(hash, e.field.order))
 	return e
@@ -178,6 +186,10 @@ func (e *zpElem) toBytes() []byte {
 	bytes := e.v.Bytes()
 	padding := make([]byte, orderByteCount - len(bytes))
 	return append(padding, bytes...)
+}
+
+func (e *zpElem) isSqr() bool {
+	return big.Jacobi(e.v, e.field.order) == 1
 }
 
 // e == another
@@ -270,17 +282,29 @@ func (e *zpElem) sqrt(a *zpElem) *zpElem {
 	return e
 }
 
+// WARNING: this method require e.field.order is odd
+// FIXME: remove magic numbers
+func (e *zpElem) sign() int {
+	if e.isZero() {
+		return 0
+	}
+
+	if e.v.Bit(0) == uint(1) {
+		return 1
+	}
+	return -1
+}
+
 // e = -a, belongs to a.field
 func (e *zpElem) neg(a *zpElem) *zpElem {
+	e.field = a.field
 	// 0 case
-	if big.NewInt(0).Cmp(a.v) == 0 {
-		e.v.SetInt64(0)
-		e.field = a.field
+	if bigInt0.Cmp(a.v) == 0 {
+		e.v.SetUint64(0)
 		return e
 	}
 	v := new(big.Int).Sub(a.field.order, a.v)
 	e.setV(v)
-	e.field = a.field
 	return e
 }
 

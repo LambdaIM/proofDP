@@ -191,14 +191,15 @@ func (p *ecPoint) setHash(hash []byte) *ecPoint {
 		y.add(y, p.curve.a)
 		y.mul(y, p.x)
 		y.add(y, p.curve.b) // y = (x^2 + a) * x + b
-		r := y.sqrt(y)
-		if r != nil {
-			p.y.set(y)
+		if y.isSqr() {
+			p.y.sqrt(y)
 			break
-		} else {
-			p.x.sqr(p.x)
-			p.x.add(p.x, newZpOne(p.curve.zp)) // x = x^2 + 1
 		}
+		p.x.sqr(p.x)
+		p.x.add(p.x, newZpOne(p.curve.zp)) // x = x^2 + 1
+	}
+	if p.y.sign() < 0 {
+		p.y.neg(p.y)
 	}
 	p.powN(p, p.curve.cofac)
 	return p
