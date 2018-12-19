@@ -76,20 +76,20 @@ Technically speaking, the index parameter is not required for `GenChallenge()` c
 
 ```go
 // response to the given challenge
-proof := GenProof(pairing, publicKey, sampleData, challenge, tag, accumulation)
+proof := GenProof(pairing, publicKey, sampleData, challenge, tag)
 ```
 
-The `accumulation` parameter in `GenProof()` is designed for future extension. And in most cases, the `accumulation` is actually nonfunctional.
+In multiple sliced data proof generation scene, the `GenProofAcc()` is the routine to use.
 
 ### Verify the proof
 
 **TPA** will validate the possession proof with responding challenge.
 
 ```go
-ok := Verify(pairing, keySet.Pk, sampleIndex, challenge, proof, accumulation)
+ok := Verify(pairing, keySet.Pk, sampleIndex, challenge, proof)
 ```
 
-Likewise, the `accumulation` here is reserved for future extension.
+Like proof generation, proofDP provides the `VerifyAcc()` for multiple sliced data proof verification.
 
 ## Sample
 
