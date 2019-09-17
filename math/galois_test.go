@@ -92,4 +92,5 @@ func TestMulBasedCalc(t *testing.T) {
 	}
 }
 
-// TODO: need valid benchmark
+// TODO: need edge case checks
+// TODO: need benchmarks

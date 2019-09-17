@@ -125,20 +125,20 @@ func newGalOne(f *galF) *galE {
 	}
 }
 
-func (e *galE) set(rhs *galE) *galE {
-	e.val.Set(rhs.val)
-	e.fld = rhs.fld
+func (e *galE) set(a *galE) *galE {
+	e.val.Set(a.val)
+	e.fld = a.fld
 	e.val.Mod(e.val, e.fld.ord)
 	return e
 }
 
-func (e *galE) setV(rhsV *big.Int) *galE {
-	e.val.Mod(rhsV, e.fld.ord)
+func (e *galE) setV(v *big.Int) *galE {
+	e.val.Mod(v, e.fld.ord)
 	return e
 }
 
-func (e *galE) setVI(rhsVI int64) *galE {
-	e.val.SetInt64(rhsVI)
+func (e *galE) setVI(i int64) *galE {
+	e.val.SetInt64(i)
 	return e
 }
 
@@ -200,8 +200,8 @@ func (e *galE) isSqr() bool {
 	return big.Jacobi(e.val, e.fld.ord) == 1
 }
 
-func (e *galE) equal(rhs *galE) bool {
-	return e.fld == rhs.fld && e.val.Cmp(rhs.val) == 0
+func (e *galE) equal(a *galE) bool {
+	return e.fld == a.fld && e.val.Cmp(a.val) == 0
 }
 
 func (e *galE) add(lhs, rhs *galE) *galE {
@@ -248,24 +248,24 @@ func (e *galE) powV(lhs *galE, v *big.Int) *galE {
 	return e.setV(e.val.Exp(lhs.val, v, lhs.fld.ord))
 }
 
-func (e *galE) sqr(lhs *galE) *galE {
-	return e.powI(lhs, 2)
+func (e *galE) sqr(a *galE) *galE {
+	return e.powI(a, 2)
 }
 
-func (e *galE) sqrt(lhs *galE) *galE {
-	v := new(big.Int).ModSqrt(lhs.val, lhs.fld.ord)
+func (e *galE) sqrt(a *galE) *galE {
+	v := new(big.Int).ModSqrt(a.val, a.fld.ord)
 
 	if v == nil {
 		return nil
 	}
 
-	e.fld = lhs.fld
+	e.fld = a.fld
 	return e.setV(v)
 }
 
-func (e *galE) inv(lhs *galE) *galE {
-	e.fld = lhs.fld
-	return e.setV(e.val.ModInverse(lhs.val, lhs.fld.ord))
+func (e *galE) inv(a *galE) *galE {
+	e.fld = a.fld
+	return e.setV(e.val.ModInverse(a.val, a.fld.ord))
 }
 
 // sign() returns -1 for negative value;
@@ -275,18 +275,18 @@ func (e *galE) sign() int {
 	return e.val.Cmp(intZero)
 }
 
-func (e *galE) neg(lhs *galE) *galE {
-	e.fld = lhs.fld
+func (e *galE) neg(a *galE) *galE {
+	e.fld = a.fld
 
-	if lhs.sign() == 0 {
+	if a.sign() == 0 {
 		return e.setV(intZero)
 	}
 
-	return e.setV(new(big.Int).Sub(lhs.fld.ord, lhs.val))
+	return e.setV(new(big.Int).Sub(a.fld.ord, a.val))
 }
 
-func (e *galE) halve(lhs *galE) *galE {
-	e.set(lhs)
+func (e *galE) halve(a *galE) *galE {
+	e.set(a)
 
 	if e.val.Bit(0) == 1 {
 		e.val.Add(e.val, e.fld.ord)
