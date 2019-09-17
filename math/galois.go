@@ -14,6 +14,7 @@
 //
 // You should have received a copy of the GNU Lesser General Public License
 // along with the proofDP. If not, see <http://www.gnu.org/licenses/>.
+
 package math
 
 import (
@@ -101,13 +102,13 @@ func randGalE(f *galF) (*galE, error) {
 	rVal, err := rand.Int(rand.Reader, f.ord)
 
 	if err != nil {
-		return &galE{
-			val: rVal,
-			fld: f,
-		}, nil
+		return nil, err
 	}
 
-	return nil, err
+	return &galE{
+		val: rVal,
+		fld: f,
+	}, nil
 }
 
 func newGalZero(f *galF) *galE {
@@ -264,7 +265,7 @@ func (e *galE) sqrt(lhs *galE) *galE {
 
 func (e *galE) inv(lhs *galE) *galE {
 	e.fld = lhs.fld
-	return e.setV(lhs.val.ModInverse(lhs.val, lhs.fld.ord))
+	return e.setV(e.val.ModInverse(lhs.val, lhs.fld.ord))
 }
 
 // sign() returns -1 for negative value;
