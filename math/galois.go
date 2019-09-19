@@ -50,7 +50,7 @@ var (
 )
 
 // package level init(): initialize required Galois field instances
-func init() {
+func initGalois() {
 	gFQ = newGalF(orderQValue)
 	gFR = newGalF(orderRValue)
 }
@@ -90,7 +90,6 @@ func newGalF(ordV string) *galF {
 	}
 }
 
-// TODO: restrict the newGalE() call
 func newGalE(f *galF) *galE {
 	return &galE{
 		val: new(big.Int),
@@ -185,8 +184,11 @@ func valFromHash(hash []byte, limit *big.Int) *big.Int {
 }
 
 func (e *galE) setHash(hash []byte) *galE {
-	e.val.Set(valFromHash(hash, e.fld.ord))
-	return e
+	return e.setV(valFromHash(hash, e.fld.ord))
+}
+
+func (e *galE) setBytes(data []byte) *galE {
+	return e.setV(new(big.Int).SetBytes(data))
 }
 
 func (e *galE) bytes() []byte {
@@ -209,7 +211,7 @@ func (e *galE) add(lhs, rhs *galE) *galE {
 		panic(errOperandsInDiffFields)
 	}
 	e.fld = lhs.fld
-	return e.setV(e.val.Add(lhs.val, rhs.val))
+	return e.setV(new(big.Int).Add(lhs.val, rhs.val))
 }
 
 func (e *galE) sub(lhs, rhs *galE) *galE {
@@ -217,7 +219,7 @@ func (e *galE) sub(lhs, rhs *galE) *galE {
 		panic(errOperandsInDiffFields)
 	}
 	e.fld = lhs.fld
-	return e.setV(e.val.Sub(lhs.val, rhs.val))
+	return e.setV(new(big.Int).Sub(lhs.val, rhs.val))
 }
 
 func (e *galE) mul(lhs, rhs *galE) *galE {
@@ -225,27 +227,27 @@ func (e *galE) mul(lhs, rhs *galE) *galE {
 		panic(errOperandsInDiffFields)
 	}
 	e.fld = lhs.fld
-	return e.setV(e.val.Mul(lhs.val, rhs.val))
+	return e.setV(new(big.Int).Mul(lhs.val, rhs.val))
 }
 
 func (e *galE) mulI(lhs *galE, i int64) *galE {
 	e.fld = lhs.fld
-	return e.setV(e.val.Mul(lhs.val, big.NewInt(i)))
+	return e.setV(new(big.Int).Mul(lhs.val, big.NewInt(i)))
 }
 
 func (e *galE) mulV(lhs *galE, v *big.Int) *galE {
 	e.fld = lhs.fld
-	return e.setV(e.val.Mul(lhs.val, v))
+	return e.setV(new(big.Int).Mul(lhs.val, v))
 }
 
 func (e *galE) powI(lhs *galE, i int64) *galE {
 	e.fld = lhs.fld
-	return e.setV(e.val.Exp(lhs.val, big.NewInt(i), lhs.fld.ord))
+	return e.setV(new(big.Int).Exp(lhs.val, big.NewInt(i), lhs.fld.ord))
 }
 
 func (e *galE) powV(lhs *galE, v *big.Int) *galE {
 	e.fld = lhs.fld
-	return e.setV(e.val.Exp(lhs.val, v, lhs.fld.ord))
+	return e.setV(new(big.Int).Exp(lhs.val, v, lhs.fld.ord))
 }
 
 func (e *galE) sqr(a *galE) *galE {
@@ -265,7 +267,7 @@ func (e *galE) sqrt(a *galE) *galE {
 
 func (e *galE) inv(a *galE) *galE {
 	e.fld = a.fld
-	return e.setV(e.val.ModInverse(a.val, a.fld.ord))
+	return e.setV(new(big.Int).ModInverse(a.val, a.fld.ord))
 }
 
 // sign() returns -1 for negative value;

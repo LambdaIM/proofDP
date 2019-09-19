@@ -25,13 +25,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const testRound = 1024
+const galTestRound = 1024
 
-func TestBasicArith(t *testing.T) {
+func TestGaloisArith(t *testing.T) {
 	assert.True(t, strings.Compare(gFQ.ord.String(), orderQValue) == 0)
 	assert.True(t, strings.Compare(gFR.ord.String(), orderRValue) == 0)
 
-	for i := 0; i < testRound; i++ {
+	for i := 0; i < galTestRound; i++ {
 		lhs, err := randGalE(gFQ)
 		assert.NoError(t, err)
 
@@ -51,14 +51,21 @@ func TestBasicArith(t *testing.T) {
 
 		halfLHS := newGalE(gFQ).halve(lhs)
 		assert.True(t, lhs.equal(newGalE(gFQ).add(halfLHS, halfLHS)))
+
+		curLHS1 := newGalE(gFQ).powI(lhs, 3)
+		curLHS1.add(curLHS1, lhs)
+		curLHS2 := newGalE(gFQ).sqr(lhs)
+		curLHS2.add(curLHS2, newGalOne(gFQ))
+		curLHS2.mul(curLHS2, lhs)
+		assert.True(t, curLHS1.equal(curLHS2))
 	}
 }
 
-func TestMulBasedCalc(t *testing.T) {
+func TestMulBasedGaloisCalc(t *testing.T) {
 	assert.True(t, strings.Compare(gFQ.ord.String(), orderQValue) == 0)
 	assert.True(t, strings.Compare(gFR.ord.String(), orderRValue) == 0)
 
-	for i := 0; i < testRound; i++ {
+	for i := 0; i < galTestRound; i++ {
 		a, err := randGalE(gFR)
 		assert.NoError(t, err)
 
