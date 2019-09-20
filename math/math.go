@@ -17,9 +17,20 @@
 
 package math
 
+import "encoding/base64"
+
 // package level init():
 // call all initializers in proper order
 func init() {
 	initGalois()
 	initElliptic()
+}
+
+// helper wrapper, for test purpose
+func toBase64Str(data []byte) string {
+	return base64.StdEncoding.EncodeToString(data)
+}
+
+func fromBase64Str(data string) ([]byte, error) {
+	return base64.StdEncoding.DecodeString(data)
 }
