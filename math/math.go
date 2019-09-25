@@ -24,6 +24,7 @@ import "encoding/base64"
 func init() {
 	initGalois()
 	initElliptic()
+	initPairing()
 }
 
 // helper wrapper, for test purpose

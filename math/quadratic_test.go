@@ -111,7 +111,7 @@ func TestQuadraticArith(t *testing.T) {
 		pow := newQuadE().powN(b, n)
 		assert.True(t, strings.Compare(toBase64Str(pow.bytes()), results[6]) == 0)
 
-		cofac, done := new(big.Int).SetString("12016012264891146079388821366740534204802954401251311822919615131047207289359704531102844802183906537786776", 10)
+		cofac, done := new(big.Int).SetString(phiValue, 10)
 		assert.True(t, done)
 		out := newQuadE()
 		calcTateExp(out, a, newQuadE(), cofac)

@@ -18,17 +18,20 @@
 package math
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 	"math/big"
 )
 
 // implement an elliptic curve y^2 = x^3 + x on Galois field 'gFQ'
 const (
-	coFactorValue = "1201601226489114607938882136674053420480295440125131182291961513104720728935970453110284480218390653778677"
+	genValue = "bKiQ2I+udgyl7aDwDARsdtPaZeKPRtsNB3ch7BflAYyZ7q/54XPs9kAcueh2b7YRF8Qhm66Zpjt5y8AvQq9/XWXbh+10uNqhPxzxw3QA9CpAQttozpvHRcyUqJZN4YxpyImd54SDchgYS5u47AMMw8JGj55rqkCWEIHSXs+cLig="
 
 	// panic info
-	errInitCurveParamFmt = "Failed to initalized the required elliptic curve parameters: %s"
-	errInvalidCurvePoint = "Failed to locate point on elliptic curve"
+	errInitCurveParamFmt   = "Failed to initalized the required elliptic curve parameters: %s"
+	errInitCurveProperties = "Failed to initalized the key parameters of the elliptic curve"
+	errInvalidCurvePoint   = "Failed to locate point on elliptic curve"
 )
 
 // psuedo-constant
@@ -40,30 +43,14 @@ var (
 
 // package level init(): initialize the co-factor constant
 func initElliptic() {
-	var done bool
-	coFac, done = new(big.Int).SetString(coFactorValue, radix)
-	if !done {
-		panic(fmt.Sprintf(errInitCurveParamFmt, coFactorValue))
+	genData, err := base64.StdEncoding.DecodeString(genValue)
+	if err != nil {
+		panic(fmt.Errorf(errInitCurveParamFmt, err.Error()))
 	}
-
-	// randomly pick a generator as the base of all other generator
-	genWithoutCoFac = newCurP()
-	genWithoutCoFac.inf = false
-	for {
-		x, err := randGalE(gFQ)
-		if err != nil {
-			panic(fmt.Sprintf(errInitCurveParamFmt, err.Error()))
-		}
-		y := newGalE(gFQ).powI(x, 3)
-		y.add(y, x)
-		if y.sqrt(y) != nil {
-			genWithoutCoFac.x.set(x)
-			genWithoutCoFac.y.set(y)
-			break
-		}
+	gen = newCurP().setBytes(genData)
+	if !validateCurP(gen) {
+		panic(errInitCurveProperties)
 	}
-
-	gen = newCurP().powN(genWithoutCoFac, coFac)
 }
 
 type curP struct {
@@ -78,6 +65,15 @@ func newCurP() *curP {
 		x:   newGalZero(gFQ),
 		y:   newGalZero(gFQ),
 	}
+}
+
+// for test purpose only, restrict function call
+func randCurP() (*curP, error) {
+	n, err := rand.Int(rand.Reader, gFQ.ord)
+	if err != nil {
+		return nil, err
+	}
+	return newCurP().powN(gen, n), nil
 }
 
 // a semantic wrap
@@ -250,7 +246,7 @@ func (p *curP) powN(a *curP, n *big.Int) *curP {
 	tmp := newCurP().set(a)
 	res := newCurIdentity()
 	for exp.Cmp(intZero) > 0 {
-		if exp.Bit(0) == 1 {
+		if exp.Bit(0) != 0 {
 			res.mul(res, tmp)
 		}
 		tmp.sqr(tmp)
