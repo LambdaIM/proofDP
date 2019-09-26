@@ -26,7 +26,8 @@ import (
 
 // implement an elliptic curve y^2 = x^3 + x on Galois field 'gFQ'
 const (
-	genValue = "bKiQ2I+udgyl7aDwDARsdtPaZeKPRtsNB3ch7BflAYyZ7q/54XPs9kAcueh2b7YRF8Qhm66Zpjt5y8AvQq9/XWXbh+10uNqhPxzxw3QA9CpAQttozpvHRcyUqJZN4YxpyImd54SDchgYS5u47AMMw8JGj55rqkCWEIHSXs+cLig="
+	genValue   = "bKiQ2I+udgyl7aDwDARsdtPaZeKPRtsNB3ch7BflAYyZ7q/54XPs9kAcueh2b7YRF8Qhm66Zpjt5y8AvQq9/XWXbh+10uNqhPxzxw3QA9CpAQttozpvHRcyUqJZN4YxpyImd54SDchgYS5u47AMMw8JGj55rqkCWEIHSXs+cLig="
+	coFacValue = "12016012264891146079388821366740534204802954401251311822919615131047207289359704531102844802183906537786776"
 
 	// panic info
 	errInitCurveParamFmt   = "Failed to initalized the required elliptic curve parameters: %s"
@@ -36,9 +37,8 @@ const (
 
 // psuedo-constant
 var (
-	coFac           *big.Int
-	genWithoutCoFac *curP
-	gen             *curP
+	gen   *curP
+	coFac *big.Int
 )
 
 // package level init(): initialize the co-factor constant
@@ -50,6 +50,11 @@ func initElliptic() {
 	gen = newCurP().setBytes(genData)
 	if !validateCurP(gen) {
 		panic(errInitCurveProperties)
+	}
+	var done bool
+	coFac, done = new(big.Int).SetString(coFacValue, radix)
+	if !done {
+		panic(fmt.Errorf(errInitCurveParamFmt, "Cannot load cofactor"))
 	}
 }
 

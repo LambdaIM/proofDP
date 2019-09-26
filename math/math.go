@@ -35,3 +35,44 @@ func toBase64Str(data []byte) string {
 func fromBase64Str(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
 }
+
+// wrapper of inner implementation
+
+// GaloisElem presents an element in Galois field
+type GaloisElem struct {
+	v *galE
+}
+
+// EllipticElem presents an element on the elliptic curve
+type EllipticElem struct {
+	v *curP
+}
+
+// QuadraticElem presents an element in the quadratic
+// Galois field
+type QuadraticElem struct {
+	v *quadE
+}
+
+// GetGenerator returns a generator of the elliptic curve
+func GetGenerator() EllipticElem {
+	return EllipticElem{
+		v: dupCurP(gen),
+	}
+}
+
+// EllipticPow returns the result of power calculation on
+// elliptic curve
+func EllipticPow(g EllipticElem, x GaloisElem) EllipticElem {
+	return EllipticElem{
+		v: newCurP().powN(g.v, x.v.val),
+	}
+}
+
+// HashToGaloisElem maps a hash value to an Galois field
+// element
+func HashToGaloisElem(h []byte) GaloisElem {
+	return GaloisElem{
+		v: newGalE(gFR).setHash(h),
+	}
+}
