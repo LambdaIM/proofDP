@@ -43,8 +43,8 @@ type GaloisElem struct {
 	v *galE
 }
 
-// EllipticElem presents an element on the elliptic curve
-type EllipticElem struct {
+// EllipticPoint presents a point on the elliptic curve
+type EllipticPoint struct {
 	v *curP
 }
 
@@ -55,16 +55,16 @@ type QuadraticElem struct {
 }
 
 // GetGenerator returns a generator of the elliptic curve
-func GetGenerator() EllipticElem {
-	return EllipticElem{
+func GetGenerator() EllipticPoint {
+	return EllipticPoint{
 		v: dupCurP(gen),
 	}
 }
 
 // EllipticPow returns the result of power calculation on
 // elliptic curve
-func EllipticPow(g EllipticElem, x GaloisElem) EllipticElem {
-	return EllipticElem{
+func EllipticPow(g EllipticPoint, x GaloisElem) EllipticPoint {
+	return EllipticPoint{
 		v: newCurP().powN(g.v, x.v.val),
 	}
 }
@@ -75,4 +75,26 @@ func HashToGaloisElem(h []byte) GaloisElem {
 	return GaloisElem{
 		v: newGalE(gFR).setHash(h),
 	}
+}
+
+// HashToEllipticPt maps a hash value to an Elliptic curve
+// point
+func HashToEllipticPt(h []byte) EllipticPoint {
+	return EllipticPoint{
+		v: newCurP().setHash(h),
+	}
+}
+
+// BiLinearMap returns the result of bi-linear map of
+// 2 elements in elliptic curve field
+func BiLinearMap(u, v EllipticPoint) QuadraticElem {
+	return QuadraticElem{
+		v: biLinearMap(u.v, v.v),
+	}
+}
+
+// QuadraticEqual validate if 2 quadratic Galois field
+// elements' value is equal to each other
+func QuadraticEqual(a, b QuadraticElem) bool {
+	return a.v.equal(b.v)
 }
