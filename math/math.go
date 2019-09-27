@@ -17,7 +17,10 @@
 
 package math
 
-import "encoding/base64"
+import (
+	"crypto/sha256"
+	"encoding/base64"
+)
 
 // package level init():
 // call all initializers in proper order
@@ -57,24 +60,36 @@ type QuadraticElem struct {
 // GetGenerator returns a generator of the elliptic curve
 func GetGenerator() EllipticPoint {
 	return EllipticPoint{
-		v: dupCurP(gen),
-	}
-}
-
-// EllipticPow returns the result of power calculation on
-// elliptic curve
-func EllipticPow(g EllipticPoint, x GaloisElem) EllipticPoint {
-	return EllipticPoint{
-		v: newCurP().powN(g.v, x.v.val),
+		v: gen,
 	}
 }
 
 // HashToGaloisElem maps a hash value to an Galois field
-// element
+// element. Note that the results is in gFR.
 func HashToGaloisElem(h []byte) GaloisElem {
 	return GaloisElem{
 		v: newGalE(gFR).setHash(h),
 	}
+}
+
+// BytesToGaloisElem sets a slice of bytes to the value of
+// an Galois field element. Note that the result is in gFQ.
+func BytesToGaloisElem(b []byte) GaloisElem {
+	return GaloisElem{
+		v: newGalE(gFQ).setBytes(b),
+	}
+}
+
+// RandGaloisElem returns a random element in the Galois
+// field. Note that the result is in gFR.
+func RandGaloisElem() (GaloisElem, error) {
+	v, err := randGalE(gFR)
+	if err != nil {
+		return GaloisElem{}, err
+	}
+	return GaloisElem{
+		v: v,
+	}, nil
 }
 
 // HashToEllipticPt maps a hash value to an Elliptic curve
@@ -97,4 +112,60 @@ func BiLinearMap(u, v EllipticPoint) QuadraticElem {
 // elements' value is equal to each other
 func QuadraticEqual(a, b QuadraticElem) bool {
 	return a.v.equal(b.v)
+}
+
+// QuadraticPow returns the result of power calculation in
+// a Galois-based quadratic field
+func QuadraticPow(b QuadraticElem, e GaloisElem) QuadraticElem {
+	return QuadraticElem{
+		v: newQuadE().powN(b.v, e.v.val),
+	}
+}
+
+// QuadraticMul returns the product of given Galois-based quadratic
+// field elements
+func QuadraticMul(lhs, rhs QuadraticElem) QuadraticElem {
+	return QuadraticElem{
+		v: newQuadE().mul(lhs.v, rhs.v),
+	}
+}
+
+// EllipticPow returns the result of power calculation on
+// elliptic curve
+func EllipticPow(g EllipticPoint, x GaloisElem) EllipticPoint {
+	return EllipticPoint{
+		v: newCurP().powN(g.v, x.v.val),
+	}
+}
+
+// EllipticMul returns the product of the given elliptic curve points
+func EllipticMul(lhs, rhs EllipticPoint) EllipticPoint {
+	return EllipticPoint{
+		v: newCurP().mul(lhs.v, rhs.v),
+	}
+}
+
+// GaloisMul returns the product of the given Galois field elements
+// Note that the result is in gFR
+func GaloisMul(lhs, rhs GaloisElem) GaloisElem {
+	return GaloisElem{
+		v: newGalE(gFR).mul(lhs.v, rhs.v),
+	}
+}
+
+// HashQuadraticToGalois maps a quadratic element to Galois field
+// Note that the result is in gFR
+func HashQuadraticToGalois(a QuadraticElem) GaloisElem {
+	h := sha256.Sum256(a.v.bytes())
+	return GaloisElem{
+		v: newGalE(gFR).setHash(h[:]),
+	}
+}
+
+// GaloisAdd return the sum of the given Galois fields elements
+// Note that this require all the given elements comes from same field
+func GaloisAdd(lhs, rhs GaloisElem) GaloisElem {
+	return GaloisElem{
+		v: newGalE(lhs.v.fld).add(lhs.v, rhs.v),
+	}
 }
