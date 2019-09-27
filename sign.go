@@ -26,11 +26,15 @@ import (
 )
 
 const (
-	paramN = 32768
-	paramR = 8
-	paramP = 1
-	paramL = 32
+	scryptN = 32768
+	scryptR = 8
+	scryptP = 1
+	scryptL = 32
 )
+
+// Here I implement a pairing-based BLS DSA. However, the performance of
+// this implementation is not that good. 1024 times sign-verification takes
+// around 140+ seconds which is a little bit too much.
 
 // Signature is a wrapper of the inner type
 type Signature = math.EllipticPoint
@@ -48,13 +52,13 @@ type SignPrivKey struct {
 
 // GenerateKeyFromSecret creates a new SignPrivKey instance
 func GenerateKeyFromSecret(secret []byte) (*SignPrivKey, error) {
-	salt := make([]byte, paramR)
+	salt := make([]byte, scryptR)
 	_, err := rand.Read(salt)
 	if err != nil {
 		return nil, err
 	}
 
-	saltedSecret, err := scrypt.Key(secret, salt, paramN, paramR, paramP, paramL)
+	saltedSecret, err := scrypt.Key(secret, salt, scryptN, scryptR, scryptP, scryptL)
 	if err != nil {
 		return nil, err
 	}
@@ -85,3 +89,5 @@ func VerifySignature(s Signature, h [sha256.Size]byte, pk SignPubKey) bool {
 
 	return math.QuadraticEqual(lhs, rhs)
 }
+
+// TODO: implement the github.com/tendermint/crypto.PrivKey & PubKey interfaces
