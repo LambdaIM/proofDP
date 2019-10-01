@@ -35,7 +35,7 @@ func TestBLSScheme(t *testing.T) {
 		_, err := rand.Read(secret)
 		assert.NoError(t, err)
 
-		sk, err := GenerateKeyFromSecret(secret)
+		sk, err := GenerateSignPrivKeyFromSecret(secret)
 		assert.NoError(t, err)
 
 		message := make([]byte, 128)

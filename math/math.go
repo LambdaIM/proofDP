@@ -73,10 +73,10 @@ func HashToGaloisElem(h []byte) GaloisElem {
 }
 
 // BytesToGaloisElem sets a slice of bytes to the value of
-// an Galois field element. Note that the result is in gFQ.
+// an Galois field element. Note that the result is in gFR.
 func BytesToGaloisElem(b []byte) GaloisElem {
 	return GaloisElem{
-		v: newGalE(gFQ).setBytes(b),
+		v: newGalE(gFR).setBytes(b),
 	}
 }
 
@@ -88,6 +88,18 @@ func RandGaloisElem() (GaloisElem, error) {
 		return GaloisElem{}, err
 	}
 	return GaloisElem{
+		v: v,
+	}, nil
+}
+
+// RandEllipticPt returns a random point on the elliptic
+// curve in our Galois field.
+func RandEllipticPt() (EllipticPoint, error) {
+	v, err := randCurP()
+	if err != nil {
+		return EllipticPoint{}, err
+	}
+	return EllipticPoint{
 		v: v,
 	}, nil
 }

@@ -50,8 +50,8 @@ type SignPrivKey struct {
 	Pk  SignPubKey
 }
 
-// GenerateKeyFromSecret creates a new SignPrivKey instance
-func GenerateKeyFromSecret(secret []byte) (*SignPrivKey, error) {
+// GenerateSignPrivKeyFromSecret creates a new SignPrivKey instance
+func GenerateSignPrivKeyFromSecret(secret []byte) (*SignPrivKey, error) {
 	salt := make([]byte, scryptR)
 	_, err := rand.Read(salt)
 	if err != nil {
