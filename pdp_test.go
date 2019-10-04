@@ -18,22 +18,25 @@
 package proofDP
 
 import (
+	"bytes"
+	"io/ioutil"
+	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/LambdaIM/proofDP/math"
 	"github.com/stretchr/testify/assert"
 	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
-const (
-	sampleFilePath = "math/quadratic_test.go"
-
-	proofDPTestRound = 1
-)
+// psuedo-constant
+var sampleFiles = []string{
+	"math/quadratic_test.go",
+}
 
 func TestProofDPScheme(t *testing.T) {
-	for i := 0; i < proofDPTestRound; i++ {
+	for _, sampleFilePath := range sampleFiles {
 		ssk := secp256k1.GenPrivKey()
 		sp, err := GeneratePrivateParams(ssk)
 		assert.NoError(t, err)
@@ -58,5 +61,86 @@ func TestProofDPScheme(t *testing.T) {
 		file.Close()
 
 		assert.True(t, VerifyProof(pp, chal, proof))
+	}
+}
+
+func TestPDPAgainstChanges(t *testing.T) {
+	for _, sampleFilePath := range sampleFiles {
+		ssk := secp256k1.GenPrivKey()
+		sp, err := GeneratePrivateParams(ssk)
+		assert.NoError(t, err)
+
+		u, err := math.RandEllipticPt()
+		assert.NoError(t, err)
+		pp := sp.GeneratePublicParams(u)
+
+		data, err := ioutil.ReadFile(sampleFilePath)
+		assert.NoError(t, err)
+
+		tagBuf := bytes.NewReader(data)
+		tag, err := GenTag(sp, pp, []byte(sampleFilePath), tagBuf)
+		assert.NoError(t, err)
+
+		chal, err := GenChal([]byte(sampleFilePath))
+		assert.NoError(t, err)
+
+		passPrfBuf := bytes.NewReader(data)
+		passPrf, err := Prove(pp, chal, tag, passPrfBuf)
+		assert.NoError(t, err)
+
+		// make sure the unchanged content works
+		assert.True(t, VerifyProof(pp, chal, passPrf))
+
+		// a bit flip in random position
+		rand.Seed(time.Now().UnixNano())
+		idx := rand.Intn(len(data))
+		data[idx] ^= byte(1 << 7)
+
+		failPrfBuf := bytes.NewReader(data)
+		failPrf, err := Prove(pp, chal, tag, failPrfBuf)
+		assert.NoError(t, err)
+
+		// make sure the changed content fails
+		assert.False(t, VerifyProof(pp, chal, failPrf))
+	}
+}
+
+func TestPDPAgainstLoss(t *testing.T) {
+	for _, sampleFilePath := range sampleFiles {
+		ssk := secp256k1.GenPrivKey()
+		sp, err := GeneratePrivateParams(ssk)
+		assert.NoError(t, err)
+
+		u, err := math.RandEllipticPt()
+		assert.NoError(t, err)
+		pp := sp.GeneratePublicParams(u)
+
+		data, err := ioutil.ReadFile(sampleFilePath)
+		assert.NoError(t, err)
+
+		tagBuf := bytes.NewReader(data)
+		tag, err := GenTag(sp, pp, []byte(sampleFilePath), tagBuf)
+		assert.NoError(t, err)
+
+		chal, err := GenChal([]byte(sampleFilePath))
+		assert.NoError(t, err)
+
+		passPrfBuf := bytes.NewReader(data)
+		passPrf, err := Prove(pp, chal, tag, passPrfBuf)
+		assert.NoError(t, err)
+
+		// make sure the unchanged content works
+		assert.True(t, VerifyProof(pp, chal, passPrf))
+
+		// lose the last byte
+		incompleteData := make([]byte, len(data)-1)
+		copy(incompleteData, data[:len(data)-1])
+
+		failPrfBuf := bytes.NewReader(incompleteData)
+		failPrf, err := Prove(pp, chal, tag, failPrfBuf)
+		assert.NoError(t, err)
+
+		// make sure the incomplete content fails
+		assert.False(t, VerifyProof(pp, chal, failPrf))
 	}
 }
