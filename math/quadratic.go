@@ -49,6 +49,13 @@ func (e *quadE) bytes() []byte {
 	return append(e.x.bytes(), e.y.bytes()...)
 }
 
+func (e *quadE) setBytes(data []byte) *quadE {
+	l := len(data) / 2
+	e.x.setBytes(data[:l])
+	e.y.setBytes(data[l:])
+	return e
+}
+
 func (e *quadE) equal(a *quadE) bool {
 	return e.x.equal(a.x) && e.y.equal(a.y)
 }

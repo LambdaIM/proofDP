@@ -46,15 +46,45 @@ type GaloisElem struct {
 	v *galE
 }
 
+// Bytes converts a GaloisElem instance to a byte slice
+func (e *GaloisElem) Bytes() []byte {
+	return e.v.bytes()
+}
+
+// SetBytes converts a byte slice to a GaloisElem instance
+func (e *GaloisElem) SetBytes(data []byte) {
+	e.v.setBytes(data)
+}
+
 // EllipticPoint presents a point on the elliptic curve
 type EllipticPoint struct {
 	v *curP
+}
+
+// Bytes converts a EllipticPoint instance to a byte slice
+func (p *EllipticPoint) Bytes() []byte {
+	return p.v.bytes()
+}
+
+// SetBytes converts a byte slice to a EllipticPoint instance
+func (p *EllipticPoint) SetBytes(data []byte) {
+	p.v.setBytes(data)
 }
 
 // QuadraticElem presents an element in the quadratic
 // Galois field
 type QuadraticElem struct {
 	v *quadE
+}
+
+// Bytes converts a QuadraticElem instance to a byte slice
+func (e *QuadraticElem) Bytes() []byte {
+	return e.v.bytes()
+}
+
+// SetBytes converts a byte slice to a EllipticPoint instance
+func (e *QuadraticElem) SetBytes(data []byte) {
+	e.v.setBytes(data)
 }
 
 // GetGenerator returns a generator of the elliptic curve
