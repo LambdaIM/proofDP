@@ -33,7 +33,6 @@ import (
 // constant
 const (
 	errParsePublicParamsFmt    = "Failed to restore PublicParams: %s"
-	errUnsupportedDSASchemeFmt = "Given DSA scheme is not supported yet: %d"
 	errGeneratePrivateParamFmt = "Failed to generate PrivateParams: %s"
 	errGenerateDataTagFmt      = "Failed to generate tag for given data (index:%s): %s"
 	errGenerateDataChalFmt     = "Failed to generate challenge for given data (index:%s): %s"
@@ -107,9 +106,8 @@ func ParsePrivateParams(s string) (*PrivateParams, error) {
 type Tag = math.EllipticPoint
 
 // ParseTag try to restore a Tag instance
-func ParseTag(s string) (*Tag, error) {
-	t, err := math.ParseEllipticPt(s)
-	return &t, err
+func ParseTag(s string) (Tag, error) {
+	return math.ParseEllipticPt(s)
 }
 
 // Chal wraps a validator created random value & corespoding idx
@@ -124,23 +122,23 @@ func (c *Chal) Marshal() string {
 }
 
 // ParseChal trys to restore a Chal instance
-func ParseChal(s string) (*Chal, error) {
+func ParseChal(s string) (Chal, error) {
 	parts := strings.Split(s, ",")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf(errParseChalFmt, "unmatch parts num")
+		return Chal{}, fmt.Errorf(errParseChalFmt, "unmatch parts num")
 	}
 
 	idx, err := base64.StdEncoding.DecodeString(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf(errParseChalFmt, err.Error())
+		return Chal{}, fmt.Errorf(errParseChalFmt, err.Error())
 	}
 
 	nu, err := math.ParseGaloisElem(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf(errParseChalFmt, err.Error())
+		return Chal{}, fmt.Errorf(errParseChalFmt, err.Error())
 	}
 
-	return &Chal{
+	return Chal{
 		idx: idx,
 		nu:  nu,
 	}, nil
@@ -159,28 +157,28 @@ func (p *Proof) Marshal() string {
 }
 
 // ParseProof trys to restore a Proof instance by parsing given string
-func ParseProof(s string) (*Proof, error) {
+func ParseProof(s string) (Proof, error) {
 	parts := strings.Split(s, ",")
 	if len(parts) != 3 {
-		return nil, fmt.Errorf(errParseProofFmt, "unmatched parts num")
+		return Proof{}, fmt.Errorf(errParseProofFmt, "unmatched parts num")
 	}
 
 	miu, err := math.ParseGaloisElem(parts[0])
 	if err != nil {
-		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+		return Proof{}, fmt.Errorf(errParseProofFmt, err.Error())
 	}
 
 	sigma, err := math.ParseEllipticPt(parts[1])
 	if err != nil {
-		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+		return Proof{}, fmt.Errorf(errParseProofFmt, err.Error())
 	}
 
 	r, err := math.ParseQuadraticElem(parts[2])
 	if err != nil {
-		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+		return Proof{}, fmt.Errorf(errParseProofFmt, err.Error())
 	}
 
-	return &Proof{
+	return Proof{
 		miu:   miu,
 		sigma: sigma,
 		r:     r,
