@@ -39,7 +39,7 @@ func fromBase64Str(data string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(data)
 }
 
-// wrapper of inner implementation
+// ---- wrapper of inner implementation ----
 
 // GaloisElem presents an element in Galois field
 type GaloisElem struct {
@@ -51,9 +51,21 @@ func (e *GaloisElem) Bytes() []byte {
 	return e.v.bytes()
 }
 
-// SetBytes converts a byte slice to a GaloisElem instance
-func (e *GaloisElem) SetBytes(data []byte) {
-	e.v.setBytes(data)
+// Marshal converts a GaloisElem instance to a base64 encoded string
+func (e *GaloisElem) Marshal() string {
+	return toBase64Str(e.Bytes())
+}
+
+// ParseGaloisElem trys to restore a GaloisElem instance by
+// parsing given Base64 encoding string
+// WARNING: the result is in gFR field
+func ParseGaloisElem(s string) (GaloisElem, error) {
+	bytes, err := fromBase64Str(s)
+	if err != nil {
+		return GaloisElem{}, err
+	}
+
+	return BytesToGaloisElem(bytes), nil
 }
 
 // EllipticPoint presents a point on the elliptic curve
@@ -66,9 +78,21 @@ func (p *EllipticPoint) Bytes() []byte {
 	return p.v.bytes()
 }
 
-// SetBytes converts a byte slice to a EllipticPoint instance
-func (p *EllipticPoint) SetBytes(data []byte) {
-	p.v.setBytes(data)
+// Marshal converts a EllipticPoint instance to a Base64 encoded string
+func (p *EllipticPoint) Marshal() string {
+	return toBase64Str(p.Bytes())
+}
+
+// ParseEllipticPt trys to restore an elliptic curve point from given string
+func ParseEllipticPt(s string) (EllipticPoint, error) {
+	bytes, err := fromBase64Str(s)
+	if err != nil {
+		return EllipticPoint{}, err
+	}
+
+	return EllipticPoint{
+		v: newCurP().setBytes(bytes),
+	}, nil
 }
 
 // QuadraticElem presents an element in the quadratic
@@ -82,9 +106,22 @@ func (e *QuadraticElem) Bytes() []byte {
 	return e.v.bytes()
 }
 
-// SetBytes converts a byte slice to a EllipticPoint instance
-func (e *QuadraticElem) SetBytes(data []byte) {
-	e.v.setBytes(data)
+// Marshal converts a QuadraticElem instance to a Base64 encoded string
+func (e *QuadraticElem) Marshal() string {
+	return toBase64Str(e.Bytes())
+}
+
+// ParseQuadraticElem try to restore a QuadraticElem instance by parsing
+// given string
+func ParseQuadraticElem(s string) (QuadraticElem, error) {
+	bytes, err := fromBase64Str(s)
+	if err != nil {
+		return QuadraticElem{}, err
+	}
+
+	return QuadraticElem{
+		v: newQuadE().setBytes(bytes),
+	}, nil
 }
 
 // GetGenerator returns a generator of the elliptic curve

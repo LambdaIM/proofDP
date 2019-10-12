@@ -20,8 +20,10 @@ package proofDP
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/LambdaIM/proofDP/math"
 	"github.com/tendermint/tendermint/crypto"
@@ -30,33 +32,85 @@ import (
 
 // constant
 const (
+	errParsePublicParamsFmt    = "Failed to restore PublicParams: %s"
 	errUnsupportedDSASchemeFmt = "Given DSA scheme is not supported yet: %d"
 	errGeneratePrivateParamFmt = "Failed to generate PrivateParams: %s"
 	errGenerateDataTagFmt      = "Failed to generate tag for given data (index:%s): %s"
 	errGenerateDataChalFmt     = "Failed to generate challenge for given data (index:%s): %s"
 	errProveFmt                = "Failed to prove against challenge (index:%s): %s"
+	errParseChalFmt            = "Failed to restore Chal: %s"
+	errParseProofFmt           = "Failed to restore Proof: %s"
 )
 
 // PublicParams holds the public paramters of a specific PDP proof.
 // Note that there may be multiple PublicParams instance coresponding
 // to the same PrivateParams.
 type PublicParams struct {
-	spk crypto.PubKey
-	v   math.EllipticPoint
-	u   math.EllipticPoint
-	e   math.QuadraticElem
+	v math.EllipticPoint
+	u math.EllipticPoint
+	e math.QuadraticElem
+}
+
+// Marshal works as the serialization routine
+func (pp *PublicParams) Marshal() string {
+	return fmt.Sprintf("%s,%s,%s", pp.v.Marshal(), pp.u.Marshal(), pp.e.Marshal())
+}
+
+// ParsePublicParams trys to restore a PublicParams instance from a given string
+func ParsePublicParams(s string) (*PublicParams, error) {
+	parts := strings.Split(s, ",")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf(errParsePublicParamsFmt, "unmatched parts num")
+	}
+
+	v, err := math.ParseEllipticPt(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf(errParsePublicParamsFmt, err.Error())
+	}
+
+	u, err := math.ParseEllipticPt(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf(errParsePublicParamsFmt, err.Error())
+	}
+
+	e, err := math.ParseQuadraticElem(parts[2])
+	if err != nil {
+		return nil, fmt.Errorf(errParsePublicParamsFmt, err.Error())
+	}
+
+	return &PublicParams{
+		v: v,
+		u: u,
+		e: e,
+	}, nil
 }
 
 // PrivateParams holds the private parameters of a specific PDP proof.
 // Note a PrivateParams instance can be used to validate multiple
 // PublicParams's proof.
 type PrivateParams struct {
-	ssk crypto.PrivKey
-	x   math.GaloisElem
+	x math.GaloisElem
+}
+
+// Marshal works as a serialization
+func (sp *PrivateParams) Marshal() string {
+	return sp.x.Marshal()
+}
+
+// ParsePrivateParams try to restore a PrivateParams instance
+func ParsePrivateParams(s string) (*PrivateParams, error) {
+	x, err := math.ParseGaloisElem(s)
+	return &PrivateParams{x: x}, err
 }
 
 // Tag is the product of GenTag & a param of the VerifyProof
 type Tag = math.EllipticPoint
+
+// ParseTag try to restore a Tag instance
+func ParseTag(s string) (*Tag, error) {
+	t, err := math.ParseEllipticPt(s)
+	return &t, err
+}
 
 // Chal wraps a validator created random value & corespoding idx
 type Chal struct {
@@ -64,11 +118,73 @@ type Chal struct {
 	nu  math.GaloisElem
 }
 
+// Marshal works as a serialization routine
+func (c *Chal) Marshal() string {
+	return fmt.Sprintf("%s,%s", base64.StdEncoding.EncodeToString(c.idx), c.nu.Marshal())
+}
+
+// ParseChal trys to restore a Chal instance
+func ParseChal(s string) (*Chal, error) {
+	parts := strings.Split(s, ",")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf(errParseChalFmt, "unmatch parts num")
+	}
+
+	idx, err := base64.StdEncoding.DecodeString(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf(errParseChalFmt, err.Error())
+	}
+
+	nu, err := math.ParseGaloisElem(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf(errParseChalFmt, err.Error())
+	}
+
+	return &Chal{
+		idx: idx,
+		nu:  nu,
+	}, nil
+}
+
 // Proof is the product of Prove
 type Proof struct {
 	miu   math.GaloisElem
 	sigma math.EllipticPoint
 	r     math.QuadraticElem
+}
+
+// Marshal works as a serialization routine
+func (p *Proof) Marshal() string {
+	return fmt.Sprintf("%s,%s,%s", p.miu.Marshal(), p.sigma.Marshal(), p.r.Marshal())
+}
+
+// ParseProof trys to restore a Proof instance by parsing given string
+func ParseProof(s string) (*Proof, error) {
+	parts := strings.Split(s, ",")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf(errParseProofFmt, "unmatched parts num")
+	}
+
+	miu, err := math.ParseGaloisElem(parts[0])
+	if err != nil {
+		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+	}
+
+	sigma, err := math.ParseEllipticPt(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+	}
+
+	r, err := math.ParseQuadraticElem(parts[2])
+	if err != nil {
+		return nil, fmt.Errorf(errParseProofFmt, err.Error())
+	}
+
+	return &Proof{
+		miu:   miu,
+		sigma: sigma,
+		r:     r,
+	}, nil
 }
 
 // GeneratePrivateParams returns the PrivateParams instance created using
@@ -86,8 +202,7 @@ func GeneratePrivateParams(sk crypto.PrivKey) (*PrivateParams, error) {
 	}
 
 	return &PrivateParams{
-		ssk: sk,
-		x:   math.HashToGaloisElem(saltedKey),
+		x: math.HashToGaloisElem(saltedKey),
 	}, nil
 }
 
@@ -96,10 +211,9 @@ func GeneratePrivateParams(sk crypto.PrivKey) (*PrivateParams, error) {
 func (sp *PrivateParams) GeneratePublicParams(u math.EllipticPoint) *PublicParams {
 	v := math.EllipticPow(math.GetGenerator(), sp.x)
 	return &PublicParams{
-		spk: sp.ssk.PubKey(),
-		v:   v,
-		u:   u,
-		e:   math.BiLinearMap(u, v),
+		v: v,
+		u: u,
+		e: math.BiLinearMap(u, v),
 	}
 }
 
