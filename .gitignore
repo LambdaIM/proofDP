@@ -12,5 +12,4 @@
 *.out
 
 # unnecessary dependency management
-go.mod
 go.sum
