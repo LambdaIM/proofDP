@@ -44,7 +44,7 @@ var sampleFiles = []string{
 func TestProofDPScheme(t *testing.T) {
 	for _, sampleFilePath := range sampleFiles {
 		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk)
+		sp, err := GeneratePrivateParams(ssk.Bytes())
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -73,7 +73,7 @@ func TestProofDPScheme(t *testing.T) {
 func TestPDPAgainstChanges(t *testing.T) {
 	for _, sampleFilePath := range sampleFiles {
 		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk)
+		sp, err := GeneratePrivateParams(ssk.Bytes())
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -114,7 +114,7 @@ func TestPDPAgainstChanges(t *testing.T) {
 func TestPDPAgainstLoss(t *testing.T) {
 	for _, sampleFilePath := range sampleFiles {
 		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk)
+		sp, err := GeneratePrivateParams(ssk.Bytes())
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -152,15 +152,15 @@ func TestPDPAgainstLoss(t *testing.T) {
 }
 
 func TestSampleValue(t *testing.T) {
-	samplePPStr := "lEbWlt9HsuIbNoae9GKi18wjUlDOfGwsyQECXZT44AgH4278Wiz63Ur4WU+eHGJNcJMFgB/EVpau+SOCe1oPsC2LnRYqvpkzZR+gDW7D0F10XQuJZkC0t2F2w4erhI+bNaJCjoCBfjTLfxd3s3PE7ABoezVJxMU97SMya2NNkts=,Ayppy9ovSnxVrTVqmmaanuV5NI3dYCjKxlQ+JF33BRqZ9SCgPBIP/NnfzAQbqR8lpYpAbSL8uZQDNeqXDAXQ2EihIk8hGN4H2sEK2e7OgIeLIJ/bANDg3hOAevZ6Fgs4beOWnGr7hlFERVXy/uWT2bkwqNctizvd1mYoPPK8Yx0=,XkZ2q7tc+MsEOSdjfYyT7A8vV6Jj2u8XkbSfu2ZL/mUP/eLdnjBy0UAG2QFrYlAf8ACiM3n0Yg93NiMaPJx93Yinm7N6KBXNW9Dse8C4ZTo5TUJfjvIp+YU3ESzhrUdiorEQKsTzoZfXp0QZXlBrUwlLqiPXh5sjZ5ZbUmmGUyI="
+	samplePPStr := "BGigSMkCItBCwTqemMCtmoDKXVMVCdVwUZXZVf2hPvPNO2DLtQn13bI/CxvIaIpTEiAzj0zr7oe0lzhNQKyE5kZnF+MtgNDOscJwBIdnJHPXdDfCl8svh35eoGiq/EVOo+szhGkFL4sN+JVzKLHNVOcwSZBff6sbmPH8XB4t/9o=,D0aNIV3hRTRHROopG2eTTcEf+WSIe/N5MEix5rHW4nXpU+GdafsCNyohik22pDtpS5j0KWKDushRECekpWhNDRIZTvVhHQLZl1j1b9xGnbVthpZlCc/0bwkJ47681owhWxeFunSqhx657M5+RbsnHoFcdD7FCxwvq5noqiI/KRE=,aketewWR8nYgnoJc/SCYCR7avZhMmx32O8Ja3G1hQztNNImCRAFAxXEFJ3fIzSkwRrsY0Z8XnVrjn6m6KgYgv5Bfac3lyrlbBR2vNwjaqyyHmimPLqCcKJ9qOCTieAtd6GHRYDrgsMP7iLrpedvetRtgjS3EQQgSwnYaava2ry8="
 	pp, err := ParsePublicParams(samplePPStr)
 	require.NoError(t, err)
 
-	sampleChalStr := "NDI=,BtpUiNsZIyc4vLYBVIx3K3cF7fY="
+	sampleChalStr := "MTk=,U6jngYuZCWQv0NlqGklQQISTQrY="
 	chal, err := ParseChal(sampleChalStr)
 	require.NoError(t, err)
 
-	sampleProofStr := "PF2IOBHOwPrxDxWghgq+55mLbFE=,Q7+FLPCpV50OLadfuYqIm6egFl7Fi7s3mm4cWhDYMyWG8NFiIUW0mctw+CCdIQD8PzF00LE5MdPJsR6C3Ant2B+BDmtIY4ItRDD5zLFpuO1ZBYSxZTSo26OG5UsZeozGqygzvpPQq7KdhVQazNya1IEGhpiC//5YJEXtockQneI=,KBH/X8DQSqfrBHeLgOLyB805rpxhSidxT64LaPklO0Rw+jZQAjZNEQsEDVo9pcFhjkR9yvzq8W03Un7iYGIP83PkjVXduAWzRnV5k2aHVO9lS5oUHE7H1t9icTxmtQG4Q68/JtCeJuOsko0/DVLNj+bxOzQAV5KXDvf5R86uwZk="
+	sampleProofStr := "CvnoxLVzu8Axk73zF1rA7BUD0Yc=,NpqB/3O97gOIADhfaafwGu5aM9oYGV/018orjMI2XUp3nvJ41FiVVWCmRUl80HMloiPbuHPl5U5QINiZOyqRbGMvxelvuQuP0R9FIg54NZiVNAfX4F6G3RnWS2LppGCcbhDOmyCo/zALi1JugZpMJqU3k3rJFIenZxY+HqZbH+Q=,dEdSDvEsVL2DteF9TSchgsSMIznNtH0JEO4sZFRwyg4EEBHKcWXxBmztus2Ga0dTLItEnElzE/lyzocfPM6py5L06IT/iEhojvjed+ACXbpQ2Kphv4fCF5Df+TUlq/h9MNZFQAJpNilyB0VgjlUhkeKj46cEmKMdhI7lanJ7vEU="
 	proof, err := ParseProof(sampleProofStr)
 	require.NoError(t, err)
 

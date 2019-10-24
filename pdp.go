@@ -26,7 +26,6 @@ import (
 	"strings"
 
 	"github.com/LambdaIM/proofDP/math"
-	"github.com/tendermint/tendermint/crypto"
 	"golang.org/x/crypto/scrypt"
 )
 
@@ -187,14 +186,14 @@ func ParseProof(s string) (Proof, error) {
 
 // GeneratePrivateParams returns the PrivateParams instance created using
 // given crypto.PrivKey
-func GeneratePrivateParams(sk crypto.PrivKey) (*PrivateParams, error) {
+func GeneratePrivateParams(sk []byte) (*PrivateParams, error) {
 	salt := make([]byte, scryptR)
 	_, err := rand.Read(salt)
 	if err != nil {
 		return nil, fmt.Errorf(errGeneratePrivateParamFmt, err.Error())
 	}
 
-	saltedKey, err := scrypt.Key(sk.Bytes(), salt, scryptN, scryptR, scryptP, scryptL)
+	saltedKey, err := scrypt.Key(sk, salt, scryptN, scryptR, scryptP, scryptL)
 	if err != nil {
 		return nil, fmt.Errorf(errGeneratePrivateParamFmt, err.Error())
 	}
@@ -260,7 +259,9 @@ func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
 	if _, err := io.Copy(hasher, data); err != nil {
 		return Proof{}, fmt.Errorf(errProveFmt, string(c.idx), err.Error())
 	}
-	m := math.BytesToGaloisElem(hasher.Sum(nil))
+	hashBytes := hasher.Sum(nil)
+	fmt.Printf("------------------\npdp.Prove:\n pp = %s\n c = %s\n t = %s\n dataHash = %s\n", pp.Marshal(), c.Marshal(), t.Marshal(), base64.StdEncoding.EncodeToString(hashBytes))
+	m := math.BytesToGaloisElem(hashBytes)
 	miu := math.GaloisMul(c.nu, m)
 	miu = math.GaloisMul(miu, math.HashQuadraticToGalois(r))
 	miu = math.GaloisAdd(miu, rand)
