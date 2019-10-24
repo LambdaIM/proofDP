@@ -256,9 +256,7 @@ func GenChal(idx int64) (Chal, error) {
 // Note that in this implementation a Chal instance contains only *ONE* pair of
 // challenge target index & coresponding random value.
 func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
-	// TODO: delete the debug logic later
-	fixedRandVal := "UrAPDS0D7zNhwQPD2PoeaiqJbF0="
-	rand, err := math.ParseGaloisElem(fixedRandVal) //rand, err := math.RandGaloisElem()
+	rand, err := math.RandGaloisElem()
 	if err != nil {
 		return Proof{}, fmt.Errorf(errProveFmt, string(c.idx), err.Error())
 	}
