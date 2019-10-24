@@ -242,9 +242,7 @@ func GenTag(sp *PrivateParams, pp *PublicParams, idx int64, data io.Reader) (Tag
 // however, is not going well with Lambda's system design.
 func GenChal(idx int64) (Chal, error) {
 	idxStr := strconv.FormatInt(idx, intStrRadix)
-	// TODO: delete the debug logic later
-	fixedRandVal := "U6jngYuZCWQv0NlqGklQQISTQrY="
-	nu, err := math.ParseGaloisElem(fixedRandVal) //nu, err := math.RandGaloisElem()
+	nu, err := math.RandGaloisElem()
 	if err != nil {
 		return Chal{}, fmt.Errorf(errGenerateDataChalFmt, idxStr, err.Error())
 	}
