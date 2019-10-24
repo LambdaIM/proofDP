@@ -249,7 +249,8 @@ func GenChal(idx []byte) (Chal, error) {
 // Note that in this implementation a Chal instance contains only *ONE* pair of
 // challenge target index & coresponding random value.
 func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
-	rand, err := math.RandGaloisElem()
+	fixedRandVal := "UrAPDS0D7zNhwQPD2PoeaiqJbF0="
+	rand, err := math.ParseGaloisElem(fixedRandVal) //rand, err := math.RandGaloisElem()
 	if err != nil {
 		return Proof{}, fmt.Errorf(errProveFmt, string(c.idx), err.Error())
 	}
@@ -268,11 +269,14 @@ func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
 
 	sigma := math.EllipticPow(t, c.nu)
 
-	return Proof{
+	res := Proof{
 		miu:   miu,
 		sigma: sigma,
 		r:     r,
-	}, nil
+	}
+
+	fmt.Printf(" proof = %s\n", res.Marshal())
+	return res, nil
 }
 
 // VerifyProof validates if the given 'p' is exactly a sound
