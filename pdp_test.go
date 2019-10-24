@@ -19,18 +19,16 @@ package proofDP
 
 import (
 	"bytes"
-	"fmt"
+	"crypto/rand"
 	"io/ioutil"
-	"math/rand"
+	mrand "math/rand"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
 	"github.com/LambdaIM/proofDP/math"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto/secp256k1"
 )
 
 // psuedo-constant
@@ -41,10 +39,19 @@ var sampleFiles = []string{
 	"math/quadratic_test.go",
 }
 
+func getRandSecret() []byte {
+	res := make([]byte, 32)
+	_, err := rand.Read(res)
+	if err != nil {
+		panic(err)
+	}
+	return res
+}
+
 func TestProofDPScheme(t *testing.T) {
-	for _, sampleFilePath := range sampleFiles {
-		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk.Bytes())
+	for i, sampleFilePath := range sampleFiles {
+		secret := getRandSecret()
+		sp, err := GeneratePrivateParams(secret)
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -53,11 +60,11 @@ func TestProofDPScheme(t *testing.T) {
 
 		file, err := os.OpenFile(sampleFilePath, os.O_RDONLY, 0644)
 		assert.NoError(t, err)
-		tag, err := GenTag(sp, pp, []byte(strconv.Itoa(111)), file)
+		tag, err := GenTag(sp, pp, int64(i), file)
 		assert.NoError(t, err)
 		file.Close()
 
-		chal, err := GenChal([]byte(strconv.Itoa(111)))
+		chal, err := GenChal(int64(i))
 		assert.NoError(t, err)
 
 		file, err = os.OpenFile(sampleFilePath, os.O_RDONLY, 0644)
@@ -71,9 +78,9 @@ func TestProofDPScheme(t *testing.T) {
 }
 
 func TestPDPAgainstChanges(t *testing.T) {
-	for _, sampleFilePath := range sampleFiles {
-		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk.Bytes())
+	for i, sampleFilePath := range sampleFiles {
+		ssk := getRandSecret()
+		sp, err := GeneratePrivateParams(ssk)
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -84,10 +91,10 @@ func TestPDPAgainstChanges(t *testing.T) {
 		assert.NoError(t, err)
 
 		tagBuf := bytes.NewReader(data)
-		tag, err := GenTag(sp, pp, []byte(sampleFilePath), tagBuf)
+		tag, err := GenTag(sp, pp, int64(i), tagBuf)
 		assert.NoError(t, err)
 
-		chal, err := GenChal([]byte(sampleFilePath))
+		chal, err := GenChal(int64(i))
 		assert.NoError(t, err)
 
 		passPrfBuf := bytes.NewReader(data)
@@ -95,11 +102,11 @@ func TestPDPAgainstChanges(t *testing.T) {
 		assert.NoError(t, err)
 
 		// make sure the unchanged content works
-		assert.True(t, VerifyProof(pp, chal, passPrf))
+		require.True(t, VerifyProof(pp, chal, passPrf))
 
 		// a bit flip in random position
-		rand.Seed(time.Now().UnixNano())
-		idx := rand.Intn(len(data))
+		mrand.Seed(time.Now().UnixNano())
+		idx := mrand.Intn(len(data))
 		data[idx] ^= byte(1 << 7)
 
 		failPrfBuf := bytes.NewReader(data)
@@ -107,14 +114,14 @@ func TestPDPAgainstChanges(t *testing.T) {
 		assert.NoError(t, err)
 
 		// make sure the changed content fails
-		assert.False(t, VerifyProof(pp, chal, failPrf))
+		require.False(t, VerifyProof(pp, chal, failPrf))
 	}
 }
 
 func TestPDPAgainstLoss(t *testing.T) {
-	for _, sampleFilePath := range sampleFiles {
-		ssk := secp256k1.GenPrivKey()
-		sp, err := GeneratePrivateParams(ssk.Bytes())
+	for i, sampleFilePath := range sampleFiles {
+		ssk := getRandSecret()
+		sp, err := GeneratePrivateParams(ssk)
 		assert.NoError(t, err)
 
 		u, err := math.RandEllipticPt()
@@ -125,10 +132,10 @@ func TestPDPAgainstLoss(t *testing.T) {
 		assert.NoError(t, err)
 
 		tagBuf := bytes.NewReader(data)
-		tag, err := GenTag(sp, pp, []byte(sampleFilePath), tagBuf)
+		tag, err := GenTag(sp, pp, int64(i), tagBuf)
 		assert.NoError(t, err)
 
-		chal, err := GenChal([]byte(sampleFilePath))
+		chal, err := GenChal(int64(i))
 		assert.NoError(t, err)
 
 		passPrfBuf := bytes.NewReader(data)
@@ -136,7 +143,7 @@ func TestPDPAgainstLoss(t *testing.T) {
 		assert.NoError(t, err)
 
 		// make sure the unchanged content works
-		assert.True(t, VerifyProof(pp, chal, passPrf))
+		require.True(t, VerifyProof(pp, chal, passPrf))
 
 		// lose the last byte
 		incompleteData := make([]byte, len(data)-1)
@@ -147,7 +154,7 @@ func TestPDPAgainstLoss(t *testing.T) {
 		assert.NoError(t, err)
 
 		// make sure the incomplete content fails
-		assert.False(t, VerifyProof(pp, chal, failPrf))
+		require.False(t, VerifyProof(pp, chal, failPrf))
 	}
 }
 
@@ -164,5 +171,5 @@ func TestSampleValue(t *testing.T) {
 	proof, err := ParseProof(sampleProofStr)
 	require.NoError(t, err)
 
-	fmt.Printf("%t\n", VerifyProof(pp, chal, proof))
+	t.Logf("VerifyProof(samplePP, sampleChal, sampleProof) = %t\n", VerifyProof(pp, chal, proof))
 }

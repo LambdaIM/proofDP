@@ -23,6 +23,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/LambdaIM/proofDP/math"
@@ -38,6 +39,8 @@ const (
 	errProveFmt                = "Failed to prove against challenge (index:%s): %s"
 	errParseChalFmt            = "Failed to restore Chal: %s"
 	errParseProofFmt           = "Failed to restore Proof: %s"
+
+	intStrRadix = 10
 )
 
 // PublicParams holds the public paramters of a specific PDP proof.
@@ -217,30 +220,36 @@ func (sp *PrivateParams) GeneratePublicParams(u math.EllipticPoint) *PublicParam
 // GenTag calculates the tag for given 'data' & 'idx'. Since the 'data' block may
 // be too huge to load into memory, a SHA256 digest is applied here.
 // Note that 'idx' here is actually refers to the (Fid||index) parameter in PDP paper.
-func GenTag(sp *PrivateParams, pp *PublicParams, idx []byte, data io.Reader) (Tag, error) {
+// And we actually apply a different way of 'idx'-related calculating.
+func GenTag(sp *PrivateParams, pp *PublicParams, idx int64, data io.Reader) (Tag, error) {
+	idxStr := strconv.FormatInt(idx, intStrRadix)
 	hasher := sha256.New() // a singleton hasher maybe?
 	if _, err := io.Copy(hasher, data); err != nil {
-		return Tag{}, fmt.Errorf(errGenerateDataTagFmt, string(idx), err.Error())
+		return Tag{}, fmt.Errorf(errGenerateDataTagFmt, idxStr, err.Error())
 	}
 	m := math.BytesToGaloisElem(hasher.Sum(nil))
 
-	t := math.HashToEllipticPt(idx)
+	t := math.HashToEllipticPt([]byte(idxStr))
 	t = math.EllipticMul(t, math.EllipticPow(pp.u, m))
 	return math.EllipticPow(t, sp.x), nil
 }
 
 // GenChal created a challenge instance for given 'idx'.
 // Note that 'idx' here is actually refers to the (Fid||index) parameter in PDP paper.
+// Here the 'idx' works just as in GenTag() implementation.
 // Also, GenChal creates just *ONE* challenge against the given 'idx'. According to
 // the original paper, there should be a set of challenge against *ONE* file, which,
 // however, is not going well with Lambda's system design.
-func GenChal(idx []byte) (Chal, error) {
-	nu, err := math.RandGaloisElem()
+func GenChal(idx int64) (Chal, error) {
+	idxStr := strconv.FormatInt(idx, intStrRadix)
+	// TODO: delete the debug logic later
+	fixedRandVal := "U6jngYuZCWQv0NlqGklQQISTQrY="
+	nu, err := math.ParseGaloisElem(fixedRandVal) //nu, err := math.RandGaloisElem()
 	if err != nil {
-		return Chal{}, fmt.Errorf(errGenerateDataChalFmt, string(idx), err.Error())
+		return Chal{}, fmt.Errorf(errGenerateDataChalFmt, idxStr, err.Error())
 	}
 	return Chal{
-		idx: idx,
+		idx: []byte(idxStr),
 		nu:  nu,
 	}, nil
 }
@@ -249,6 +258,7 @@ func GenChal(idx []byte) (Chal, error) {
 // Note that in this implementation a Chal instance contains only *ONE* pair of
 // challenge target index & coresponding random value.
 func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
+	// TODO: delete the debug logic later
 	fixedRandVal := "UrAPDS0D7zNhwQPD2PoeaiqJbF0="
 	rand, err := math.ParseGaloisElem(fixedRandVal) //rand, err := math.RandGaloisElem()
 	if err != nil {
@@ -260,23 +270,18 @@ func Prove(pp *PublicParams, c Chal, t Tag, data io.Reader) (Proof, error) {
 	if _, err := io.Copy(hasher, data); err != nil {
 		return Proof{}, fmt.Errorf(errProveFmt, string(c.idx), err.Error())
 	}
-	hashBytes := hasher.Sum(nil)
-	fmt.Printf("------------------\npdp.Prove:\n pp = %s\n c = %s\n t = %s\n dataHash = %s\n", pp.Marshal(), c.Marshal(), t.Marshal(), base64.StdEncoding.EncodeToString(hashBytes))
-	m := math.BytesToGaloisElem(hashBytes)
+	m := math.BytesToGaloisElem(hasher.Sum(nil))
 	miu := math.GaloisMul(c.nu, m)
 	miu = math.GaloisMul(miu, math.HashQuadraticToGalois(r))
 	miu = math.GaloisAdd(miu, rand)
 
 	sigma := math.EllipticPow(t, c.nu)
 
-	res := Proof{
+	return Proof{
 		miu:   miu,
 		sigma: sigma,
 		r:     r,
-	}
-
-	fmt.Printf(" proof = %s\n", res.Marshal())
-	return res, nil
+	}, nil
 }
 
 // VerifyProof validates if the given 'p' is exactly a sound
