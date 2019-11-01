@@ -158,6 +158,23 @@ func TestPDPAgainstLoss(t *testing.T) {
 	}
 }
 
+func TestGenChalWithSeed(t *testing.T) {
+	mrand.Seed(time.Now().UnixNano())
+	for i := 1; i < 64; i++ {
+		idx := mrand.Int63()
+		hash := make([]byte, 64)
+		_, err := rand.Read(hash)
+		require.NoError(t, err)
+
+		chal1, err := GenChalWithSeed(idx, hash)
+		require.NoError(t, err)
+
+		chal2, err := GenChalWithSeed(idx, hash)
+		require.NoError(t, err)
+		require.True(t, chal1.Equal(chal2))
+	}
+}
+
 func TestSampleValue(t *testing.T) {
 	samplePPStr := "BGigSMkCItBCwTqemMCtmoDKXVMVCdVwUZXZVf2hPvPNO2DLtQn13bI/CxvIaIpTEiAzj0zr7oe0lzhNQKyE5kZnF+MtgNDOscJwBIdnJHPXdDfCl8svh35eoGiq/EVOo+szhGkFL4sN+JVzKLHNVOcwSZBff6sbmPH8XB4t/9o=,D0aNIV3hRTRHROopG2eTTcEf+WSIe/N5MEix5rHW4nXpU+GdafsCNyohik22pDtpS5j0KWKDushRECekpWhNDRIZTvVhHQLZl1j1b9xGnbVthpZlCc/0bwkJ47681owhWxeFunSqhx657M5+RbsnHoFcdD7FCxwvq5noqiI/KRE=,aketewWR8nYgnoJc/SCYCR7avZhMmx32O8Ja3G1hQztNNImCRAFAxXEFJ3fIzSkwRrsY0Z8XnVrjn6m6KgYgv5Bfac3lyrlbBR2vNwjaqyyHmimPLqCcKJ9qOCTieAtd6GHRYDrgsMP7iLrpedvetRtgjS3EQQgSwnYaava2ry8="
 	pp, err := ParsePublicParams(samplePPStr)

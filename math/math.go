@@ -56,6 +56,11 @@ func (e *GaloisElem) Marshal() string {
 	return toBase64Str(e.Bytes())
 }
 
+// Equal validate if 2 GaloisElem instances are mathematically equal
+func (e *GaloisElem) Equal(a GaloisElem) bool {
+	return e.v.equal(a.v)
+}
+
 // ParseGaloisElem trys to restore a GaloisElem instance by
 // parsing given Base64 encoding string
 // WARNING: the result is in gFR field

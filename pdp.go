@@ -18,6 +18,7 @@
 package proofDP
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -121,6 +122,11 @@ type Chal struct {
 // Marshal works as a serialization routine
 func (c *Chal) Marshal() string {
 	return fmt.Sprintf("%s,%s", base64.StdEncoding.EncodeToString(c.idx), c.nu.Marshal())
+}
+
+// Equal works
+func (c *Chal) Equal(a Chal) bool {
+	return bytes.Equal(c.idx, a.idx) && c.nu.Equal(a.nu)
 }
 
 // ParseChal trys to restore a Chal instance
@@ -246,6 +252,18 @@ func GenChal(idx int64) (Chal, error) {
 	if err != nil {
 		return Chal{}, fmt.Errorf(errGenerateDataChalFmt, idxStr, err.Error())
 	}
+	return Chal{
+		idx: []byte(idxStr),
+		nu:  nu,
+	}, nil
+}
+
+// GenChalWithSeed created a challenge instatnce for given 'idx'.
+// This routine works in the same way that GenChal does, except that the
+// GenChalWithSeed requires an external entropy input 'rand'.
+func GenChalWithSeed(idx int64, rand []byte) (Chal, error) {
+	idxStr := strconv.FormatInt(idx, intStrRadix)
+	nu := math.BytesToGaloisElem(rand)
 	return Chal{
 		idx: []byte(idxStr),
 		nu:  nu,
