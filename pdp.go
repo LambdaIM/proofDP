@@ -129,6 +129,10 @@ func (c *Chal) Equal(a Chal) bool {
 	return bytes.Equal(c.idx, a.idx) && c.nu.Equal(a.nu)
 }
 
+func (c *Chal) GetNum() math.GaloisElem {
+	return c.nu
+}
+
 // ParseChal trys to restore a Chal instance
 func ParseChal(s string) (Chal, error) {
 	parts := strings.Split(s, ",")
